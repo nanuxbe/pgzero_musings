@@ -14,6 +14,18 @@ WIDTH = CELL_CT_W * CELL_WIDTH
 HEIGHT = CELL_CT_H * CELL_HEIGHT
 
 
+def rotate(original, ct=1):
+    rv = original
+    for i in range(ct):
+        rv = list([list(item) for item in zip(*rv[::-1])])
+    return rv
+
+
+def restore_game():
+    global board
+    board._matrix = board._hidden_matrix
+    board.status = 1
+
 class CantMoveThere(Exception):
     pass
 
@@ -21,8 +33,14 @@ class CantMoveThere(Exception):
 class Cell(BaseCell):
 
     images = [
-        'cell_dead',
-        'cell_alive',
+        'cell_empty',
+        'cell_i',
+        'cell_j',
+        'cell_l',
+        'cell_o',
+        'cell_s',
+        'cell_t',
+        'cell_z',
     ]
 
 
@@ -58,9 +76,8 @@ class Piece():
         self.y += y
 
     def rotate(self, matrix, factor=1, check=True):
-        ct = abs(factor - 1)
-        for x in range(ct + 1):
-            new_value = list([list(item) for item in zip(*self._value[::-1])])
+        ct = abs(factor - 1) + 1
+        new_value = rotate(self._value, ct)
         if check:
             self.check_can_be_there(matrix, self.x, self.y, new_value)
         self._value = new_value
@@ -68,7 +85,8 @@ class Piece():
     def plot_on(self, board):
         for x in range(len(self._value)):
             for y in range(len(self._value[0])):
-                board.cell_at_xy(self.x + x, self.y + y)._next = self._value[x][y]
+                if self._value[x][y] > 0:
+                    board.cell_at_xy(self.x + x, self.y + y)._next = self._value[x][y]
 
     def merge_into(self, matrix):
         for x in range(len(self._value)):
@@ -79,17 +97,55 @@ class Piece():
 class LPiece(Piece):
 
     _value = [
-        [1, 0],
-        [1, 0],
-        [1, 1],
+        [3, 0],
+        [3, 0],
+        [3, 3],
     ]
 
 
 class OPiece(Piece):
 
     _value = [
-        [1, 1],
-        [1, 1],
+        [4, 4],
+        [4, 4],
+    ]
+
+
+class IPiece(Piece):
+    _value = [
+        [1],
+        [1],
+        [1],
+        [1],
+    ]
+
+
+class JPiece(Piece):
+    _value = [
+        [0, 2],
+        [0, 2],
+        [2, 2],
+    ]
+
+
+class SPiece(Piece):
+    _value = [
+        [0, 5, 5],
+        [5, 5, 0],
+    ]
+
+
+class TPiece(Piece):
+    _value = [
+        [6, 6, 6],
+        [0, 6, 0],
+    ]
+
+
+class ZPiece(Piece):
+    _value = [
+        [7, 7, 0],
+        [0, 7, 7],
     ]
 
 
@@ -99,7 +155,12 @@ class Board(BaseBoard):
     interval = .5
     pieces = [
         LPiece,
-        OPiece
+        OPiece,
+        IPiece,
+        JPiece,
+        SPiece,
+        TPiece,
+        ZPiece,
     ]
 
     def __init__(self, width, height, *args, **kwargs):
@@ -125,13 +186,39 @@ class Board(BaseBoard):
                     self.next_piece()
 
     def draw(self):
+        self.clear_full_rows()
         self.plot()
         super(Board, self).draw()
+
+    def clear_full_rows(self):
+        matrix = rotate(self._matrix)
+        new_matrix = []
+        cleared = 0
+        for line in matrix:
+            if all(line):
+                cleared += 1
+                line = [0 for x in range(self.width)]
+            new_matrix.append(line)
+
+        if cleared > 0:
+            self._matrix = rotate(new_matrix, 3)
+            self.status = 2
+            print('you cleared {} lines'.format(cleared))
+            matrix = [
+                [0 for x in range(self.width)]
+                for y in range(cleared)
+            ] + list(filter(
+                lambda l: not all(l),
+                matrix
+            ))
+            self._hidden_matrix = rotate(matrix, 3)
+            clock.schedule_unique(restore_game, .25)
 
     def plot(self):
         for x in range(len(self._matrix)):
             for y in range(len(self._matrix[0])):
-                self.cell_at_xy(x, y)._next = self._matrix[x][y]
+                if self.cell_at_xy(x, y) is not None:
+                    self.cell_at_xy(x, y)._next = self._matrix[x][y]
         if self._moving is not None:
             self._moving.plot_on(self)
 
