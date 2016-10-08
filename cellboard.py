@@ -40,10 +40,10 @@ class BaseCell():
         self._actor.image = self.get_image()
         self._actor.draw()
 
-    def update():
+    def update(self):
         pass
 
-    def click():
+    def click(self):
         pass
 
 
@@ -59,6 +59,7 @@ class BaseBoard():
         self.height = height
         self.status = 0
 
+        self._last = 0
         self._board = [
             [
                 self.get_new_cell(x, y) for y in range(height)
@@ -77,12 +78,15 @@ class BaseBoard():
         for cell in self.each():
             cell.draw()
 
-    def update(self):
+    def do_update(self):
         if self.status == 1:
             for cell in self.each():
                 cell.update()
-            if self.interval > 0:
-                time.sleep(self.interval)
+
+    def update(self):
+        if time.clock() - self.interval > self._last:
+            self._last = time.clock()
+            self.do_update()
 
     def get_xy_for_pos(self, pos):
         return (
