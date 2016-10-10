@@ -1,5 +1,6 @@
 from random import choice
 import time
+import serial
 
 from cellboard import BaseCell, BaseBoard, toggle_status
 
@@ -152,7 +153,7 @@ class ZPiece(Piece):
 class Board(BaseBoard):
 
     cell_class = Cell
-    interval = .5
+    interval = .05
     pieces = [
         LPiece,
         OPiece,
@@ -217,8 +218,7 @@ class Board(BaseBoard):
     def plot(self):
         for x in range(len(self._matrix)):
             for y in range(len(self._matrix[0])):
-                if self.cell_at_xy(x, y) is not None:
-                    self.cell_at_xy(x, y)._next = self._matrix[x][y]
+                self.cell_at_xy(x, y)._next = self._matrix[x][y]
         if self._moving is not None:
             self._moving.plot_on(self)
 
@@ -253,7 +253,10 @@ class Board(BaseBoard):
 
 
 board = Board(CELL_CT_W, CELL_CT_H, CELL_WIDTH, CELL_HEIGHT)
-
+# try:
+ser = serial.Serial('/dev/ttyACM0', 115200, timeout=.1)
+# except:
+#     ser = None
 
 def draw():
     screen.clear()
@@ -261,6 +264,33 @@ def draw():
 
 
 def update():
+    try:
+        rcv = ser.readline()
+        cmd = rcv.decode('utf-8').rstrip()
+        cmd = cmd.split(':')
+        if cmd[0] == 'btn':
+            direction = 1
+            if cmd[1] == 'b':
+                direction = -1
+            board.rotate_piece(direction)
+        elif cmd[0] == 'move':
+            dx = 0
+            dy = 0
+
+            if cmd[1] == 'left':
+                dx = -1
+            elif cmd[1] == 'right':
+                dx = 1
+            elif cmd[1] == 'backwards':
+                dy = 1
+
+            if dx != 0:
+                board.move_piece(dx)
+            elif dy != 0:
+                print('drop')
+                board.drop_piece(dy)
+    except:
+        pass
     board.update()
 
 
