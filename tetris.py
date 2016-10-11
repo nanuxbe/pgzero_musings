@@ -253,10 +253,12 @@ class Board(BaseBoard):
 
 
 board = Board(CELL_CT_W, CELL_CT_H, CELL_WIDTH, CELL_HEIGHT)
-# try:
-ser = serial.Serial('/dev/ttyACM0', 115200, timeout=.1)
-# except:
-#     ser = None
+ser = None
+try:
+    ser = serial.Serial('/dev/ttyACM0', 115200, timeout=.0001)
+except:
+    ser = None
+
 
 def draw():
     screen.clear()
@@ -264,7 +266,11 @@ def draw():
 
 
 def update():
+    global ser
     try:
+        if ser is None:
+            print('reconnecting')
+            ser = serial.Serial('/dev/ttyACM0', 115200, timeout=.0001)
         rcv = ser.readline()
         cmd = rcv.decode('utf-8').rstrip()
         cmd = cmd.split(':')
@@ -287,10 +293,18 @@ def update():
             if dx != 0:
                 board.move_piece(dx)
             elif dy != 0:
-                print('drop')
                 board.drop_piece(dy)
-    except:
-        pass
+    except serial.SerialException:
+        try:
+            if ser is not None:
+                ser.close()
+                ser = None
+                print('Disconencting')
+            print('Lost or no connection')
+        except UnboundLocalError:
+            print('ser not assigned yet')
+    except Exception as e:
+        print(e)
     board.update()
 
 
