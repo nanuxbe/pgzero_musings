@@ -7,9 +7,6 @@ CELL_HEIGHT = 70
 CELL_CT_W = 5
 CELL_CT_H = 5
 
-WIDTH = CELL_WIDTH * CELL_CT_W
-HEIGHT = CELL_HEIGHT * CELL_CT_H
-
 
 class Cell(ScrollableCell):
 
@@ -26,6 +23,12 @@ class Cell(ScrollableCell):
 
 class Board(ScrollingBoard):
 
+    controles_width = 160
+    controles_height = 500
+    margin = (2, 2)
+    border_color = (255, 255, 255)
+    background_color = (30, 30, 30)
+
     map = [
         [0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0],
@@ -36,6 +39,23 @@ class Board(ScrollingBoard):
     #offset = (CELL_WIDTH, CELL_HEIGHT)
     cell_class = Cell
 
+    def draw(self):
+        super(Board, self).draw()
+        px_width = self.width * self.cell_width
+        px_height = self.height * self.cell_height
+        screen.draw.filled_rect(Rect((0, 0), (px_width + 2 * self.margin[0], self.margin[1])), self.border_color)
+        screen.draw.filled_rect(Rect((0, self.margin[1]), (self.margin[0], px_height)), self.border_color)
+        screen.draw.filled_rect(Rect((0, px_height + self.margin[1]), (px_width + 2 * self.margin[0], self.margin[1])), self.border_color)
+        screen.draw.filled_rect(Rect((px_width + self.margin[0], self.margin[1]), (self.margin[0], px_height)), self.border_color)
+        screen.draw.filled_rect(Rect((px_width + 2 * self.margin[0], 0), (self.controles_width, HEIGHT)), self.background_color)
+        if HEIGHT > px_height + 2 * self.margin[1]:
+            diff = HEIGHT - px_height + 2 * self.margin[1] - 1
+            screen.draw.filled_rect(Rect((0, px_height + 2 * self.margin[1] + 1), (px_width + 2 * self.margin[0], diff)), self.background_color)
+
+
+
+WIDTH = CELL_WIDTH * CELL_CT_W + 2 * Board.margin[0] + Board.controles_width
+HEIGHT = max(CELL_HEIGHT * CELL_CT_H + 2 * Board.margin[1], Board.controles_height)
 
 dx = 0
 dy = 0

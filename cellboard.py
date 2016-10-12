@@ -130,11 +130,13 @@ class BaseBoard():
 
 class ScrollableCell(BaseCell):
 
-    def get_pos(self, offset=None):
+    def get_pos(self, offset=None, margin=None):
         if offset is None:
             offset = self.parent.offset
+        if margin is None:
+            margin = self.parent.margin
         x, y = super(ScrollableCell, self).get_pos()
-        return (x - offset[0], y - offset[1])
+        return (x - offset[0] + margin[0], y - offset[1] + margin[1])
 
     def draw(self):
         x, y = self.get_pos()
@@ -148,6 +150,7 @@ class ScrollingBoard(BaseBoard):
 
     map = []
     offset = (0, 0)
+    margin = (0, 0)
     cell_class = ScrollableCell
 
     def build_board(self):
