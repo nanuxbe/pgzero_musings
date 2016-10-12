@@ -9,6 +9,10 @@ def toggle_status(item):
         item.status = 1 - item.status
 
 
+class CantScroll(Exception):
+    pass
+
+
 class BaseCell():
 
     images = [
@@ -60,10 +64,13 @@ class BaseBoard():
         self.status = 0
 
         self._last = 0
+        self.build_board()
+
+    def build_board(self):
         self._board = [
             [
-                self.get_new_cell(x, y) for y in range(height)
-            ] for x in range(width)
+                self.get_new_cell(x, y) for y in range(self.height)
+            ] for x in range(self.width)
         ]
 
     def get_new_cell(self, x, y):
@@ -105,3 +112,66 @@ class BaseBoard():
     def click(self, pos):
         (x, y) = self.get_xy_for_pos(pos)
         self.cell_at_xy(x, y).click()
+
+
+class ScrollableCell(BaseCell):
+
+    def get_pos(self, offset=None):
+        if offset is None:
+            offset = self.parent.offset
+        x, y = super(ScrollableCell, self).get_pos()
+        return (x - offset[0], y - offset[1])
+
+    def draw(self):
+        x, y = self.get_pos()
+        self._actor.left = x
+        self._actor.top = y
+        super(ScrollableCell, self).draw()
+
+
+class ScrollingBoard(BaseBoard):
+
+    map = []
+    offset = (0, 0)
+    cell_class = ScrollableCell
+
+    def build_board(self):
+        self._board = [
+            [
+                self.get_new_cell(x, y) for y in range(len(self.map[x]))
+            ] for x in range(len(self.map))
+        ]
+
+    def get_new_cell(self, x, y):
+        cell = super(ScrollingBoard, self).get_new_cell(x, y)
+        cell.status = self.map[x][y]
+        cell._next = self.map[x][y]
+        return cell
+
+    def in_view(self, cell):
+        x, y = cell.get_pos()
+        if x + self.cell_width - 1 < 0:
+            return False
+        if y + self.cell_height - 1 < 0:
+            return False
+        if x >= self.width * self.cell_width:
+            return False
+        if y >= self.height * self.cell_height:
+            return False
+        return True
+
+    def draw(self):
+        for cell in self.each():
+            if self.in_view(cell):
+                cell.draw()
+
+    def scroll(self, x=0, y=0):
+        if self.offset[0] + x < 0:
+            raise CantScroll()
+        if self.offset[1] + y < 0:
+            raise CantScroll
+        if self.offset[0] + x + self.width * self.cell_width > len(self._board) * self.cell_width:
+            raise CantScroll()
+        if self.offset[1] + y + self.height * self.cell_height > len(self._board[0]) * self.cell_height:
+            raise CantScroll
+        self.offset = (self.offset[0] + x, self.offset[1] + y)
