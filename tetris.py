@@ -2,7 +2,7 @@ from random import choice
 import time
 import serial
 
-from cellboard import BaseCell, BaseBoard, toggle_status
+from cellboard import BaseCell, BaseBoard, toggle_status, rotate, normalize
 
 
 CELL_WIDTH = 20
@@ -15,17 +15,11 @@ WIDTH = CELL_CT_W * CELL_WIDTH
 HEIGHT = CELL_CT_H * CELL_HEIGHT
 
 
-def rotate(original, ct=1):
-    rv = original
-    for i in range(ct):
-        rv = list([list(item) for item in zip(*rv[::-1])])
-    return rv
-
-
 def restore_game():
     global board
     board._matrix = board._hidden_matrix
     board.status = 1
+
 
 class CantMoveThere(Exception):
     pass
@@ -50,7 +44,7 @@ class Piece():
     _value = []
 
     def __init__(self, matrix, x=0, y=0):
-        self.normalize()
+        self._value = normalize(self._value)
         self.check_can_be_there(matrix, x, y, self._value)
         self.x = x
         self.y = y
@@ -64,12 +58,6 @@ class Piece():
                     raise CantMoveThere()
                 if value[i][j] != 0 and matrix[x + i][y + j] != 0:
                     raise CantMoveThere()
-
-    def normalize(self):
-        self._value = list([
-            list(reversed(line)) for line in self._value
-        ])
-        self.rotate([], -1, check=False)
 
     def move(self, matrix, x=0, y=0):
         self.check_can_be_there(matrix, self.x + x, self.y + y, self._value)

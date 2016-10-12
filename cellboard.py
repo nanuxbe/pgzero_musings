@@ -2,6 +2,20 @@ import time
 from pgzero.actor import Actor
 
 
+def rotate(original, ct=1):
+    rv = original
+    for i in range(ct):
+        rv = list([list(item) for item in zip(*rv[::-1])])
+    return rv
+
+
+def normalize(value):
+    rv = list([
+        list(reversed(line)) for line in value
+    ])
+    return rotate(rv, 3)
+
+
 def toggle_status(item):
     if hasattr(item, '_next'):
         item._next = 1 - item.status
@@ -126,7 +140,8 @@ class ScrollableCell(BaseCell):
         x, y = self.get_pos()
         self._actor.left = x
         self._actor.top = y
-        super(ScrollableCell, self).draw()
+        if self._next != 0:
+            super(ScrollableCell, self).draw()
 
 
 class ScrollingBoard(BaseBoard):
@@ -136,6 +151,7 @@ class ScrollingBoard(BaseBoard):
     cell_class = ScrollableCell
 
     def build_board(self):
+        self.map = normalize(self.map)
         self._board = [
             [
                 self.get_new_cell(x, y) for y in range(len(self.map[x]))

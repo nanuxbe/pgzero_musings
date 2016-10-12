@@ -1,11 +1,11 @@
 from cellboard import ScrollableCell, ScrollingBoard, CantScroll
 
 
-CELL_WIDTH = 20
-CELL_HEIGHT = 20
+CELL_WIDTH = 70
+CELL_HEIGHT = 70
 
-CELL_CT_W = 2
-CELL_CT_H = 2
+CELL_CT_W = 5
+CELL_CT_H = 5
 
 WIDTH = CELL_WIDTH * CELL_CT_W
 HEIGHT = CELL_HEIGHT * CELL_CT_H
@@ -14,23 +14,31 @@ HEIGHT = CELL_HEIGHT * CELL_CT_H
 class Cell(ScrollableCell):
 
     images = [
-        'cell_dead',
-        'cell_alive',
+        'blank',
+        'grass-left',
+        'grass-mid',
+        'grass-right',
+        'grass-center',
+        'liquid-water',
+        'liquid-water-center',
     ]
 
 
 class Board(ScrollingBoard):
 
     map = [
-        [0, 1, 0, 1, 0],
-        [1, 0, 1, 0, 1],
-        [0, 1, 0, 1, 0],
-        [1, 0, 1, 0, 1],
-        [0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [2, 3, 5, 5, 1, 2],
+        [4, 4, 6, 6, 4, 4],
     ]
-    offset = (CELL_WIDTH, CELL_HEIGHT)
+    #offset = (CELL_WIDTH, CELL_HEIGHT)
     cell_class = Cell
 
+
+dx = 0
+dy = 0
 
 board = Board(CELL_CT_W, CELL_CT_H, CELL_WIDTH, CELL_HEIGHT)
 board.status = 1
@@ -41,21 +49,30 @@ def draw():
     board.draw()
 
 def update():
+    global dx, dy
+    if dx != 0 or dy!= 0:
+        try:
+            board.scroll(dx, dy)
+        except CantScroll:
+            print("Can't scroll")
     board.update()
 
 
+def on_key_up(key):
+    global dx, dy
+    if key == keys.RIGHT or key == keys.LEFT:
+        dx = 0
+    elif key == keys.UP or key == keys.DOWN:
+        dy = 0
+
+
 def on_key_down(key):
-    x = 0
-    y = 0
+    global dx, dy
     if key == keys.RIGHT:
-        x = 1
+        dx = 1
     elif key == keys.LEFT:
-        x = -1
+        dx = -1
     elif key == keys.UP:
-        y = -1
+        dy = -1
     elif key == keys.DOWN:
-        y = 1
-    try:
-        board.scroll(x, y)
-    except CantScroll:
-        print("Can't scroll")
+        dy = 1
