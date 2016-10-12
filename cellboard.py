@@ -1,5 +1,6 @@
 import time
 from pgzero.actor import Actor
+from pgzero.rect import Rect
 
 
 def rotate(original, ct=1):
@@ -15,6 +16,12 @@ def normalize(value):
     ])
     return rotate(rv, 3)
 
+
+def denormalize(value):
+    rv = rotate(value)
+    return list([
+        list(reversed(line)) for line in rv
+    ])
 
 def toggle_status(item):
     if hasattr(item, '_next'):
@@ -95,9 +102,9 @@ class BaseBoard():
             for cell in col:
                 yield cell
 
-    def draw(self):
+    def draw(self, **kwargs):
         for cell in self.each():
-            cell.draw()
+            cell.draw(**kwargs)
 
     def do_update(self):
         if self.status == 1:
@@ -123,12 +130,19 @@ class BaseBoard():
         except IndexError:
             return None
 
-    def click(self, pos):
+    def click(self, pos, **kwargs):
         (x, y) = self.get_xy_for_pos(pos)
-        self.cell_at_xy(x, y).click()
+        cell = self.cell_at_xy(x, y)
+        if cell is not None:
+            cell.click(**kwargs)
+            return True
+        return False
+
 
 
 class ScrollableCell(BaseCell):
+
+    draw_status_zero = False
 
     def get_pos(self, offset=None, margin=None):
         if offset is None:
@@ -142,7 +156,7 @@ class ScrollableCell(BaseCell):
         x, y = self.get_pos()
         self._actor.left = x
         self._actor.top = y
-        if self._next != 0:
+        if self.draw_status_zero or self._next != 0:
             super(ScrollableCell, self).draw()
 
 
@@ -179,10 +193,10 @@ class ScrollingBoard(BaseBoard):
             return False
         return True
 
-    def draw(self):
+    def draw(self, **kwargs):
         for cell in self.each():
             if self.in_view(cell):
-                cell.draw()
+                cell.draw(**kwargs)
 
     def scroll(self, x=0, y=0):
         if self.offset[0] + x < 0:
@@ -194,3 +208,24 @@ class ScrollingBoard(BaseBoard):
         if self.offset[1] + y + self.height * self.cell_height > len(self._board[0]) * self.cell_height:
             raise CantScroll
         self.offset = (self.offset[0] + x, self.offset[1] + y)
+
+    def get_xy_for_pos(self, pos):
+        return super(ScrollingBoard, self).get_xy_for_pos((
+            pos[0] + self.offset[0] + self.margin[0],
+            pos[1] + self.offset[1] + self.margin[1]
+        ))
+
+
+class SelectableCellMixin():
+
+    selected_color = (128, 0, 0)
+
+    def __init__(self, *args, **kwargs):
+        super(SelectableCellMixin, self).__init__(*args, **kwargs)
+        self.selected = False
+
+    def draw(self, screen=None, *args, **kwargs):
+        super(SelectableCellMixin, self).draw(*args, **kwargs)
+        if self.selected and screen is not None:
+            pos = self.get_pos()
+            screen.draw.rect(Rect(pos, (self.cell_width, self.cell_height)), self.selected_color)
