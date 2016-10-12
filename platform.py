@@ -1,4 +1,5 @@
-from cellboard import ScrollableCell, ScrollingBoard, CantScroll, SelectableCellMixin, denormalize
+from cellboard import ScrollableCell, ScrollingBoard, CantScroll, SelectableCellMixin
+from cellboard import normalize, denormalize
 
 
 CELL_WIDTH = 70
@@ -21,7 +22,8 @@ class Cell(SelectableCellMixin, ScrollableCell):
     ]
 
     def click(self, selected=None):
-        self._next = selected.status
+        if selected:
+            self._next = selected.status
 
 
 class ControleCell(ScrollableCell):
@@ -34,6 +36,7 @@ class ControleCell(ScrollableCell):
 
     def click(self):
         if hasattr(self, self.get_image()):
+            self.parent.parent.store_map()
             getattr(self, self.get_image())()
 
     def save(self):
@@ -42,8 +45,25 @@ class ControleCell(ScrollableCell):
             .replace('[[', '[\n[') \
             .replace('], ', '],\n') \
             .replace(']]', ']\n]')
+        print(value)
         with open('exported.map', 'w') as f:
             f.write(value)
+
+    def add_col(self):
+        map = denormalize(self.parent.parent.map)
+        new_map = []
+        for line in map:
+            line.append(0)
+            new_map.append(line)
+        self.parent.parent.map = new_map
+        self.parent.parent.build_board()
+
+    def add_row(self):
+        map = denormalize(self.parent.parent.map)
+        map.append([0 for x in map[0]])
+        self.parent.parent.map = map
+        self.parent.parent.build_board()
+
 
 
 class Controles():
@@ -133,6 +153,14 @@ class Board(ScrollingBoard):
         self.controles = Controles(self.cell_class, self.cell_width, self.cell_height,
                                    x=WIDTH - self.controles_width, width=self.controles_width,
                                    height=self.controles_height, parent=self)
+
+    def store_map(self):
+        self.map = [
+            [
+                self._board[x][y].status for y in range(len(self._board[x]))
+
+            ] for x in range(len(self._board))
+        ]
 
     def draw_background(self):
         px_width = self.width * self.cell_width
